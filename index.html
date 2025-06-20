@@ -2,69 +2,34 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>キャラクター作成シート</title>
-  <link rel="stylesheet" href="90-01.index.css">
-  <style>
-    .resizer {
-      width: 6px;
-      background: #ccc;
-      cursor: ew-resize;
-      position: relative;
-      z-index: 10;
-    }
-    .resizer:hover { background: #888; }
-    iframe { width: 100%; height: 100%; border: none; }
-  </style>
+  <title></title>
 </head>
 <body>
-  <div id="header" style="height: 120px;">
-    <iframe src="01-ue.html" title="ヘッダー"></iframe>
+<div id="login">
+    <h2>パスワードを入力してください</h2>
+    <input type="password" id="pw" placeholder="パスワード">
+    <br>
+    <button onclick="checkPassword()">ログイン</button>
+    <p id="error" style="color:red;"></p>
   </div>
-  <div id="mainArea" style="display: flex; flex-direction: row; width: 100vw; height: calc(100vh - 120px);">
-    <div id="left" style="width: 33.3vw; min-width: 200px;">
-      <iframe src="05-st.html" title="能力とステータス"></iframe>
-    </div>
-    <div class="resizer" id="resizer1"></div>
-    <div id="center" style="width: 33.3vw; min-width: 200px;">
-      <iframe src="05-skill.html" title="職業と技能選択"></iframe>
-    </div>
-    <div class="resizer" id="resizer2"></div>
-    <div id="right" style="width: 33.3vw; min-width: 200px;">
-      <iframe src="05-cs.html" title="キャラクターシート"></iframe>
-    </div>
+
+  <div id="content">
+    <h1>ようこそ！</h1>
+    <p>ここに本来のコンテンツを置きます。</p>
   </div>
+
   <script>
-    function makeResizable(resizer, leftElem, rightElem) {
-      let x = 0, leftWidth = 0, rightWidth = 0;
-      resizer.addEventListener('mousedown', function(e) {
-        x = e.clientX;
-        leftWidth = leftElem.offsetWidth;
-        rightWidth = rightElem.offsetWidth;
-        document.body.style.cursor = 'ew-resize';
-        document.addEventListener('mousemove', mouseMove);
-        document.addEventListener('mouseup', mouseUp);
-      });
-      function mouseMove(e) {
-        const dx = e.clientX - x;
-        leftElem.style.width = (leftWidth + dx) + 'px';
-        rightElem.style.width = (rightWidth - dx) + 'px';
-      }
-      function mouseUp() {
-        document.body.style.cursor = '';
-        document.removeEventListener('mousemove', mouseMove);
-        document.removeEventListener('mouseup', mouseUp);
+    const CORRECT_PASSWORD = "1234"; // ★ここを好きなパスワードに変更！
+
+    function checkPassword() {
+      const input = document.getElementById("pw").value;
+      if (input === CORRECT_PASSWORD) {
+        document.getElementById("login").style.display = "none";
+        document.getElementById("content").style.display = "block";
+      } else {
+        document.getElementById("error").textContent = "パスワードが間違っています";
       }
     }
-    makeResizable(
-      document.getElementById('resizer1'),
-      document.getElementById('left'),
-      document.getElementById('center')
-    );
-    makeResizable(
-      document.getElementById('resizer2'),
-      document.getElementById('center'),
-      document.getElementById('right')
-    );
   </script>
 </body>
 </html>

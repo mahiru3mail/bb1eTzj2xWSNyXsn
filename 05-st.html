@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>探索者作成支援</title>
+  <link rel="stylesheet" href="90-01index.css">
+  <script>
+    function rollDice(times, sides, plus = 0) {
+      let total = 0;
+      for (let i = 0; i < times; i++) {
+        total += Math.floor(Math.random() * sides) + 1;
+      }
+      return total + plus;
+    }
+
+    function generateAbility() {
+      const rules = {
+        STR: [3, 6], CON: [3, 6], POW: [3, 6],
+        DEX: [3, 6], APP: [3, 6],
+        SIZ: [2, 6, 6], INT: [2, 6, 6],
+        EDU: [3, 6, 3]
+      };
+
+      for (const id in rules) {
+        const [t, s, p = 0] = rules[id];
+        const val = rollDice(t, s, p);
+        document.getElementById(id + '_base').value = val;
+        calculateSum(id);
+      }
+
+      updateStatus();
+    }
+
+    function resetAbility() {
+      const ids = ["STR", "CON", "POW", "DEX", "APP", "SIZ", "INT", "EDU"];
+      ids.forEach(id => {
+        document.getElementById(id + '_base').value = '';
+        calculateSum(id);
+      });
+    }
+
+    function validateRange(id, val) {
+      const valid = {
+        STR: [3, 18], CON: [3, 18], POW: [3, 18],
+        DEX: [3, 18], APP: [3, 18],
+        SIZ: [8, 24], INT: [8, 24],
+        EDU: [6, 21]
+      };
+      const [min, max] = valid[id];
+      if (val < min || val > max) {
+        alert(`${id}の値 ${val} は不正です。(${min}〜${max}の間)`);
+        document.getElementById(id + '_base').value = '';
+      }
+    }
+
+    function calculateSum(id) {
+      const get = suffix => parseInt(document.getElementById(id + suffix).value || 0);
+      const total = get('_base') + get('_add1') + get('_add2') + get('_temp1') + get('_temp2');
+      document.getElementById(id + '_total').textContent = total;
+      updateTotalAbility();
+      updateStatus();
+    }
+
+    function updateTotalAbility() {
+      const ids = ["STR", "CON", "POW", "DEX", "APP", "SIZ", "INT", "EDU"];
+      let total = 0;
+      ids.forEach(id => {
+        total += parseInt(document.getElementById(id + '_total').textContent || 0);
+      });
+      document.getElementById("TOTAL").textContent = total;
+    }
+
+    function updateStatus() {
+      const getTotal = id => parseInt(document.getElementById(id + '_total').textContent || 0);
+      const STR = getTotal("STR");
+      const CON = getTotal("CON");
+      const SIZ = getTotal("SIZ");
+      const POW = getTotal("POW");
+
+      const HP_base = Math.ceil((CON + SIZ) / 2);
+      const MP_base = POW;
+      const SAN_base = POW * 5;
+      const DBsum = STR + SIZ;
+      let DB = "";
+      if (DBsum <= 12) DB = "-1D6";
+      else if (DBsum <= 16) DB = "-1D4";
+      else if (DBsum <= 24) DB = "0";
+      else if (DBsum <= 32) DB = "+1D4";
+      else if (DBsum <= 40) DB = "+1D6";
+      else if (DBsum <= 56) DB = "+2D6";
+      else DB = "+3D6";
+
+      document.getElementById("HP_base").value = HP_base;
+      document.getElementById("MP_base").value = MP_base;
+      document.getElementById("SAN_base").value = SAN_base;
+      document.getElementById("DB_base").value = DB;
+
+      const get = id => parseInt(document.getElementById(id).value || 0);
+      const HP_total = HP_base + get("HP_add1") + get("HP_add2") + get("HP_temp1") + get("HP_temp2");
+      const MP_total = MP_base + get("MP_add1") + get("MP_add2") + get("MP_temp1") + get("MP_temp2");
+      const SAN_total = SAN_base + get("SAN_add1") + get("SAN_add2") + get("SAN_temp1") + get("SAN_temp2");
+
+      document.getElementById("HP_total").textContent = HP_total;
+      document.getElementById("MP_total").textContent = MP_total;
+      document.getElementById("SAN_total").textContent = SAN_total;
+      document.getElementById("DB_total").textContent = DB;
+    }
+  </script>
+</head>
+<body>
+  <h1>探索者作成</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>能力</th><th>初期</th><th>増加</th><th>一時</th><th>他</th><th>他</th><th>合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <script>
+        const abilities = ["STR", "CON", "POW", "DEX", "APP", "SIZ", "INT", "EDU"];
+        document.write(abilities.map(id => `
+          <tr>
+            <td>${id}</td>
+            <td><input id="${id}_base" type="number" onchange="validateRange('${id}', parseInt(this.value)); calculateSum('${id}')"></td>
+            <td><input id="${id}_add1" type="number" value="0" onchange="calculateSum('${id}')"></td>
+            <td><input id="${id}_add2" type="number" value="0" onchange="calculateSum('${id}')"></td>
+            <td><input id="${id}_temp1" type="number" value="0" onchange="calculateSum('${id}')"></td>
+            <td><input id="${id}_temp2" type="number" value="0" onchange="calculateSum('${id}')"></td>
+            <td><span id="${id}_total">0</span></td>
+          </tr>`).join(""));
+      </script>
+    </tbody>
+  </table>
+  <button onclick="generateAbility()">ランダム生成</button>
+  <button onclick="resetAbility()">リセット</button>
+  <p>合計値: <span id="TOTAL">0</span></p>
+
+  <h2>ステータス</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ステータス</th><th>初期</th><th>増加</th><th>一時</th><th>他</th><th>他</th><th>合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>HP</td>
+        <td><input id="HP_base" type="number" readonly></td>
+        <td><input id="HP_add1" type="number" value="0" onchange="updateStatus()"></td>
+        <td><input id="HP_add2" type="number" value="0" onchange="updateStatus()"></td>
+        <td><input id="HP_temp1" type="number" value="0" onchange="updateStatus()"></td>
+        <td><input id="HP_temp2" type="number" value="0" onchange="updateStatus()"></td>
+        <td><span id="HP_total">0</span></td>
+      </tr>
+      <tr>
+        <td>MP</td>
+        <td><input id="MP_base" type="number" readonly></td>
+        <td><input id="MP_add1" type="number" value="0" onchange="updateStatus()"></td>
+        <td><input id="MP_add2" type="number" value="0" onchange="updateStatus()"></td>
+        <td><input id="MP_temp1" type="number" value="0" onchange="updateStatus()"></td>
+        <td><input id="MP_temp2" type="number" value="0" onchange="updateStatus()"></td>
+        <td><span id="MP_total">0</span></td>
+      </tr>
+      <tr>
+        <td>SAN</td>
+        <td><input id="SAN_base" type="number" readonly></td>
+        <td><input id="SAN_add1" type="number" value="0" onchange="updateStatus()"></td>
+        <td><input id="SAN_add2" type="number" value="0" onchange="updateStatus()"></td>
+        <td><input id="SAN_temp1" type="number" value="0" onchange="updateStatus()"></td>
+        <td><input id="SAN_temp2" type="number" value="0" onchange="updateStatus()"></td>
+        <td><span id="SAN_total">0</span></td>
+      </tr>
+      <tr>
+        <td>DB</td>
+        <td><input id="DB_base" type="text" readonly></td>
+        <td colspan="4"></td>
+        <td><span id="DB_total">0</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <h2>データベース</h2>
+  <table>
+    <tr>
+      <td>DB</td>
+      <td>内容</td>
+    </tr>
+    <tr>
+      <td>MySQL</td>
+      <td>リレーショナルデータベース</td>
+    </tr>
+  </table>
+</body>
+</html>

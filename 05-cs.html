@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>キャラクターシート</title>
+  <link rel="stylesheet" href="90-01.index.css">
+  <style>
+    table { border-collapse: collapse; margin: 1em 0; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
+    input[type='number'] { width: 60px; }
+  </style>
+</head>
+<body>
+  <h1>キャラクターシート</h1>
+  <p><strong>職業:</strong> <span id="jobName">-</span></p>
+  <p><strong>スキルポイント:</strong> <span id="totalSkillPoint">0</span></p>
+  <p><strong>残りポイント:</strong> <span id="remainingPoint">0</span></p>
+
+  <table id="skillTable">
+    <thead>
+      <tr><th>技能</th><th>初期値</th><th>職業</th><th>興味</th><th>合計</th></tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+
+  <script>
+    const defaultBaseValues = {
+      "目星": 25, "聞き耳": 25, "心理学": 10, "図書館": 20, "応急手当": 30,
+      "医学": 5, "機械修理": 10, "電気修理": 10, "説得": 10, "言いくるめ": 5
+      // 必要ならさらに追加
+    };
+
+    let totalSkillPoint = 0;
+    let skillRows = [];
+
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'reflectSkills') {
+        const job = event.data.job;
+        totalSkillPoint = parseInt(event.data.skillPoint, 10) || 0;
+
+        document.getElementById('jobName').textContent = job.name;
+        document.getElementById('totalSkillPoint').textContent = totalSkillPoint;
+
+        renderSkills(job.skills || {});
+      }
+    });
+
+    function renderSkills(skills) {
+      const tbody = document.querySelector('#skillTable tbody');
+      tbody.innerHTML = '';
+      skillRows = [];
+
+      Object.keys(skills).forEach(skill => {
+        const baseVal = defaultBaseValues[skill] || 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${skill}</td>
+          <td><input type="number" class="base" value="${baseVal}" readonly></td>
+          <td><input type="number" class="jobPoint" value="0" min="0"></td>
+          <td><input type="number" class="interestPoint" value="0" min="0"></td>
+          <td><span class="total">0</span></td>
+        `;
+        tbody.appendChild(tr);
+        skillRows.push(tr);
+      });
+
+      updateTotals();
+      attachEvents();
+    }
+
+    function attachEvents() {
+      skillRows.forEach(row => {
+        row.querySelectorAll('input.jobPoint, input.interestPoint').forEach(input => {
+          input.addEventListener('input', () => {
+            const jobInputs = row.querySelector('.jobPoint');
+            const jobVal = parseInt(jobInputs.value) || 0;
+            const used = calcUsedPoints();
+            if (used > totalSkillPoint) {
+              input.value = 0;
+              alert("職業ポイントを使いすぎています。");
+            }
+            updateTotals();
+          });
+        });
+      });
+    }
+
+    function calcUsedPoints() {
+      let used = 0;
+      skillRows.forEach(row => {
+        used += parseInt(row.querySelector('.jobPoint').value || '0');
+      });
+      return used;
+    }
+
+    function updateTotals() {
+      const used = calcUsedPoints();
+      skillRows.forEach(row => {
+        const job = parseInt(row.querySelector('.jobPoint').value || '0');
+        const int = parseInt(row.querySelector('.interestPoint').value || '0');
+        const base = parseInt(row.querySelector('.base').value || '0');
+        const total = base + job + int;
+        row.querySelector('.total').textContent = total;
+      });
+      document.getElementById('remainingPoint').textContent = totalSkillPoint - used;
+    }
+  </script>
+</body>
+</html>

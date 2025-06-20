@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>職業と技能選択</title>
+  <link rel="stylesheet" href="90-01.index.css">
+  <link rel="stylesheet" href="90-05.skill.css">
+</head>
+<body>
+  <h1>職業と技能選択</h1>
+  <label>職業選択:
+    <select id="jobSelect"></select>
+  </label><br>
+
+  <label>技能から逆引き:
+    <select id="skillSelect">
+      <option value="">--技能を選択--</option>
+    </select>
+  </label>
+
+  <p><button id="confirmJobBtn" type="button">確定</button></p>
+
+  <div id="skillsArea"></div>
+
+  <div id="skillInfo">
+    <p><strong>スキルポイント:</strong> <span id="skillPointDisplay">-</span></p>
+    <p><strong>補足:</strong> <span id="skillNoteDisplay">-</span></p>
+  </div>
+
+  <h2>この技能を持つ職業候補</h2>
+  <ul id="jobCandidates"></ul>
+
+  <script>
+    let jobs = [];
+    let selectedSkills = {};
+    let confirmedJob = null;
+    let status = {};
+
+    // ステータス受け取り
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'reflectStatus') {
+        status = event.data.status;
+        updateSkillPointDisplay();
+      }
+    });
+
+    function evaluateFormula(formula, status) {
+      if (!formula) return 0;
+      const expr = formula.toLowerCase().replace(/(edu|int|app|pow|str|dex|con|siz)/g, key => {
+        return status[key.toUpperCase()] ?? 0;
+      });
+      try {
+        return Math.floor(eval(expr));
+      } catch {
+        return 0;
+      }
+    }
+
+    fetch('05.jobs.json')
+      .then(res => res.json())
+      .then(data => {
+        jobs = data;
+        populateJobSelect();
+        populateSkillSelect();
+      });
+
+    function populateJobSelect() {
+      const select = document.getElementById('jobSelect');
+      select.innerHTML = '<option value="">--選択してください--</option>';
+      jobs.forEach((job, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `${job.name} (${job.edition})`;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', onJobChange);
+    }
+
+    function populateSkillSelect() {
+      const skillSet = new Set();
+      jobs.forEach(job => {
+        const skills = job.skills || {};
+        Object.keys(skills).forEach(skill => skillSet.add(skill));
+      });
+      const skillSelect = document.getElementById('skillSelect');
+      skillSet.forEach(skill => {
+        const opt = document.createElement('option');
+        opt.value = skill;
+        opt.textContent = skill;
+        skillSelect.appendChild(opt);
+      });
+      skillSelect.addEventListener('change', onSkillSelectChange);
+    }
+
+    function onJobChange(e) {
+      const idx = e.target.value;
+      if (idx === "") return;
+      confirmedJob = jobs[idx];
+      showSkills(confirmedJob);
+      updateSkillPointDisplay();
+    }
+
+    function updateSkillPointDisplay() {
+      if (!confirmedJob || !status) return;
+      const base = evaluateFormula(confirmedJob.point, status);
+      const plus = evaluateFormula(confirmedJob.puls, status);
+      const total = base + plus;
+      document.getElementById('skillPointDisplay').textContent = total;
+      document.getElementById('skillNoteDisplay').textContent = confirmedJob.note || "-";
+    }
+
+    function onSkillSelectChange(e) {
+      const skill = e.target.value;
+      const ul = document.getElementById('jobCandidates');
+      ul.innerHTML = '';
+      jobs.forEach((job, idx) => {
+        if (Object.keys(job.skills || {}).includes(skill)) {
+          const li = document.createElement('li');
+          li.textContent = job.name;
+          li.style.cursor = 'pointer';
+          li.addEventListener('click', () => {
+            document.getElementById('jobSelect').value = idx;
+            confirmedJob = job;
+            showSkills(job);
+            updateSkillPointDisplay();
+          });
+          ul.appendChild(li);
+        }
+      });
+    }
+
+    function showSkills(job) {
+      const area = document.getElementById('skillsArea');
+      area.innerHTML = '';
+      const skills = job.skills || {};
+      const list = Object.entries(skills).map(([name, val]) => `${name} (${val})`).join('<br>');
+      area.innerHTML = `<strong>技能一覧:</strong><br>${list}`;
+    }
+
+    document.getElementById('confirmJobBtn').addEventListener('click', function() {
+      if (!confirmedJob) {
+        alert("職業を選択してください");
+        return;
+      }
+      window.parent.postMessage({
+        type: 'reflectSkills',
+        job: confirmedJob,
+        skillPoint: document.getElementById('skillPointDisplay').textContent
+      }, '*');
+      alert(`職業「${confirmedJob.name}」を確定しました`);
+    });
+  </script>
+</body>
+</html>
